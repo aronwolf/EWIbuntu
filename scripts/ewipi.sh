@@ -4,7 +4,7 @@
 
 
 # Set parameters
-MODE=`cat /home/aron/ewi/data/mode.txt`		# Bluetooth or USB mode
+MODE=`cat ../data/mode.txt`		# Bluetooth or USB mode
 
 export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/dbus/system_bus_socket
 
@@ -19,12 +19,12 @@ case $1 in
 	
 
 	# Start the midi router program
-	/home/aron/ewi/scripts/router.sh &
+	../scripts/router.sh &
 		
 	if [ $MODE == "BT" ]
 		then
 		# Start the Bluetooth connection parameter setting program
-		/home/aron/ewi/scripts/btcon.sh &
+		../scripts/btcon.sh &
 		fi
 		
     # check if all is running

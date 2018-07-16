@@ -6,7 +6,7 @@
 import mido
 import time
 
-SYNTHPORTFILE = "/home/aron/ewi/data/synthport.txt"       # the path to the file with the synth port name
+SYNTHPORTFILE = "../data/synthport.txt"       # the path to the file with the synth port name
 SENDMIDI = True
 PRINT = False
 

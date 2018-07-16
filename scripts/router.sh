@@ -5,6 +5,6 @@
 
 while true
 	do
-	nice -20 /home/aron/ewi/scripts/router.py
+	nice -20 ../scripts/router.py
 	sleep 5
 	done

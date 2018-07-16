@@ -1,0 +1,331 @@
+HOWTO Install and Configure an EWIPI
+====================================
+
+15 Jan 2017
+
+An EWIPI is a Akai EWI-USB wind controller combined with a Raspberry Pi computer.
+It is designed to provide a "headless" interface to an external synthesiser.
+I use a Roland JV-1010, but it could be anything. The EWIPI starts quickly 
+and is configurable via a web interface and by "Preset" buttons (optional).
+
+NOTE
+====
+
+In the following instructions a line that starts with a $ is an example of a
+command that you need to type in at the command prompt, followed by an <enter>
+
+
+Hardware:
+=========
+
+You need:
+> An EWI-USB
+> A Raspberry Pi 2 or 3 (or ZERO)
+> A micro SD card (minimum 8GB, preferably 16GB)
+> A wifi USB adapter if you're going to run the system mobile (A RPi3 has one built-in)
+> A Yamaha UD-BT01 Bluetooth Midi adapter if you want to get rid of the USB cable
+> A Bluetooth 4.0 USB adapter if you're using a Yamaha UD-BT01 Bluetooth Midi adapter
+  (The RPi3 has a BT 4.0 adapter built-in)
+> A USB to MIDI adapter (there are lots on eBay)
+> 4 momentary contact buttons with LEDs and a ribbon cable 
+  to connect to the RPi GPIO (optional)
+
+Note about the GPIO buttons: These are used to do quick changes to the EWI 
+configuration, e.g. for transpose changes (C to Eb say). They are not needed
+to make the system run, but are nice to have. You need electronic construction
+skills to make them, so they aren't for everyone. 
+
+
+BASE SYSTEM
+===========
+Download a copy of the latest Raspbian OS (I haven't tried the "Lite" version, 
+so use the full version) from here:
+https://www.raspberrypi.org/downloads/raspbian/
+
+Install it on your RPi SD card (instructions on the raspberrypi.org website)
+
+Insert your SD card and your wifi and Bluetooth dongles (if you plan 
+to use them) and boot up the RPi.
+
+The system will auto-login usr pi and will open a GUI desktop.
+
+Click on the raspberry icon in the top left corner, select <Preferences>, and 
+select <Raspberry Pi Configuration>
+
+A configuration screen will open
+
+On the System tab, do the following:
+
+Filesystem - click the <Expand Filesystem> button
+Password and hostname - change them if you want to. The system will complain
+if you don't change the password (default:raspberry)
+ 
+Boot - select "To CLI"
+Auto Login - uncheck "Login as user 'pi'"
+
+On the Interfaces tab, do the following:
+SSH - click 'Enabled' - that allows you to log in via the network with SSH
+
+On the Localisation tab do the following:
+
+Locale, Timezone, Keyboard, wifi country - set as you like
+
+Finally, click OK. It will prompt to re-boot - say yes!
+
+SSH:
+====
+From here on you can do the configuration via a SSH shell if it is more 
+convenient. You can plug an ethernet cable into the R-Pi and into your router,
+work out what the R-Pi's IP address is and then, from a terminal on your 
+networked PC, run:
+
+$ ssh pi@[YOUR-PI's-IP-ADDRESS]
+
+INSTALL REQUIRED PACKAGES
+=========================
+Log in as the pi user (password raspberry, if you haven't changed it).
+Update the repositories and get the latest packages, run:
+
+$ sudo apt-get update
+
+$ sudo apt-get dist-upgrade
+
+It will take a while to run....
+
+Then, get the packages you need, run:
+
+$ sudo apt-get install apache2 php5 libglib2.0-dev
+
+This will take a while too.
+
+CHANGE THE USER PERMISSIONS
+===========================
+
+You need to allow users pi and www-data permissions to run the various services. 
+Note that this allows them root privileges, and would be dangerous if you don't
+have trusted users.
+
+Run:
+
+$ sudo visudo
+
+This pops up the editor. 
+Under this line:
+
+root    ALL=(ALL:ALL) ALL
+
+Add the following line:
+
+www-data ALL=(ALL) NOPASSWD: ALL
+
+hit <ctrl-x> to exit, <y> to accept the prompt to exit, and <enter> to accept the file name 
+
+Now, add these users to other groups, run:
+
+$ sudo usermod -a -G audio,sudo pi
+$ sudo usermod -a -G audio,sudo www-data
+
+Reboot the computer to put these into effect, run:
+
+$ sudo reboot
+
+
+MIDI CONFIGURATION
+==================
+Log in as pi
+You now need to configure the Virtual MIDI port.
+Edit the /etc/modules file:
+
+$ sudo nano /etc/modules
+
+Add the following line to the file:
+ 
+snd-virmidi
+
+Close and save the file In the same way you did with the visudo command above.
+
+Now install Mido - the python midi package:
+
+$ sudo pip install mido
+
+After it has installed, you will need to create a symlink. Mido calls
+libportmidi.so not libportmidi.so.0.0.0 and for some reason the symlink
+is not installed. Run:
+
+$ sudo ln -s /usr/lib/libportmidi.so.0.0.0 /usr/lib/libportmidi.so
+
+Now, install BluePy - the python BLE package
+
+$ sudo pip install bluepy
+
+
+INSTALLING THE PROGRAMS
+=======================
+
+OK, all the preparation work is done. You need to get the EWIPI zip file. Assuming
+the RPi are connected to the Internet, run:
+
+$ wget http://gonzos.net/ewi/ewipi-2017-01-15.zip
+
+Extract the files from the zip archive.
+
+$ unzip ewipi-2017-01-15.zip -d /home/pi
+
+Change the file permissions so www-data can write:
+
+$ chmod uo+w -R /home/pi/ewi/data
+
+Change the file permissions so the script files are executable:
+
+$ chmod +x /home/pi/ewi/scripts/*
+
+The Apache root directory is /var/www/html . We need to put a symlink
+in there to direct to the www files:
+
+$ sudo ln -s /home/pi/ewi/www /var/www/html/ewi
+
+
+FINAL CONFIGURATION
+===================
+
+Boot up the RPi, log in, and run 
+
+$ startx 
+
+to get to the desktop. Start the browser and put in 
+
+http://localhost/ewi
+
+The web interface for the EWI should appear. Work through the next three sections...
+
+
+USB/MIDI ADAPTER:
+
+You need to find the name of the USB/MIDI adapter. Open a terminal
+and run:
+$ amidi -l
+
+You  should get something like this:
+Dir Device    Name
+IO  hw:0,0    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,1    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,2    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,3    Virtual Raw MIDI (16 subdevices)
+IO  hw:1,0,0  CH345 MIDI 1
+
+The last item is (my) adapter. Yours may be different, but I haven't heard of
+one with a different name.
+
+Go back to the browser, select the Router tab and enter the 
+port name of your USB/MIDI adapter (CH345, or whatever yours is) 
+in the SYNTH NAME field.
+
+Click the "Save to EWI" button and when the screen refreshes, select the router tab and 
+check that your new settings are still there  
+
+BLUETOOTH:
+If you are using the UD-BT01 you need to find the Bluetooth
+address of the device. Power up the UD-BT01, open a terminal and run:
+
+$ sudo hcitool lescan
+
+You should get something lke this:
+
+LE Scan ...
+D1:39:94:0D:8F:73 UD-BT01
+D1:39:94:0D:8F:73 (unknown)
+D1:39:94:0D:8F:73 UD-BT01
+D1:39:94:0D:8F:73 (unknown)
+etc,etc,etc
+
+You will have to do a <ctrl-c> to stop the scan.
+
+Go back to the web interface, and on the Router tab, put the
+UD-BT01 Bluetooth address (mine is D1:39:94:0D:8F:73 with all the colons). 
+Click "Save to EWI", and check that your setting have been saved.
+
+USB:
+If you are using the USB cable, go to the web interface and on the 
+Router tab, change the Mode setting to USB. You don't need to worry about the 
+Bluetooth address setting.
+Click "Save to EWI", and check that your setting have been saved.
+
+
+TESTING
+=======
+
+
+If you are using the USB cable, plug in your EWI to one of the USB ports. The 
+green LED on the back should come on. Test that the EWI has been recognised, run:
+
+$ amidi -l
+
+You should get something like:
+Dir Device    Name
+IO  hw:0,0    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,1    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,2    Virtual Raw MIDI (16 subdevices)
+IO  hw:0,3    Virtual Raw MIDI (16 subdevices)
+IO  hw:1,0,0  CH345 MIDI 1
+IO  hw:3,0,0  EWI-USB MIDI 1
+
+This shows that the virtual MIDI ports are installed, and the EWI-USB has been recognised. If
+you don't have this there's a problem. It won't work if you don't have all these ports listed.
+If you're using Bluetooth, run the above test anyway, just to check the virtual ports. The
+Bluetooth connection will not show up on this test.
+
+Test the audio startup by running:
+
+$ ~/ewi/scripts/ewipi.sh start
+
+You should get something like:
+
+btcon.sh: no process found
+router.sh: no process found
+router.py: no process found
+4199
+Router is running.
+
+Your numbers will be different. If all is good, stop the audio by running:
+
+$ ~/ewi/scripts/ewipi.sh stop
+
+Now test the main controlling program by running:
+
+$ ~/ewi/scripts/main.sh
+
+You should get similar output to when you started the audio server, but you 
+won't get the command prompt back (the program is running)
+
+Go back to your browser and click the "Reload Page" button. The screen should show
+that the Router is running (green).
+
+Click the "Load Defaults" button to send a safe configuration set to the EWI. 
+
+You should now be able to play some notes. The activity light on your midi 
+adapter cable should flash as you blow. Next, you'll have to plug the OUT 
+cable of the midi adapter into your synth's IN midi port, power up the synth, 
+attach the amp to the synth output, select channel 1, and a voice. 
+
+You will have to have CC2 (breath) commands enabled on your synth. If you don't 
+have that facility, you will have to change the breath controller on 
+the ewipi's Controller tab to 11 (2 is for breath, 11 is for expression), and 
+"Save to EWI".
+
+If this all works, then the final thing is to make the main control program start on boot.
+Go back to the terminal screen and press <ctrl-c> to stop the main program. 
+Run:
+
+$ crontab -e
+
+You will be prompted to select an editor. I use nano. Add the following line to the bottom
+of the file:
+
+@reboot /home/pi/ewi/scripts/main.sh
+
+Save/exit the editor, and the crontab will be saved.
+Then reboot the RPi and it should start automatically....
+
+Enjoy. 
+
+Gonzo.
