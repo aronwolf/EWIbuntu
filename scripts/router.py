@@ -68,6 +68,135 @@ pitches = {48:'C',
 108:'C',
 109:'C#'
 }
+
+
+octave1 = {48:72,
+48:72,
+49:73,
+50:74,
+51:75,
+52:76,
+53:77,
+54:78,
+55:79,
+56:80,
+57:81,
+58:82,
+59:83,
+60:72,
+61:73,
+62:74,
+63:75,
+64:76,
+65:77,
+66:78,
+67:79,
+68:80,
+69:81,
+70:82,
+71:83,
+72:72,
+73:73,
+74:74,
+75:75,
+76:76,
+77:77,
+78:78,
+79:79,
+80:80,
+81:81,
+82:82,
+83:83,
+84:72,
+85:73,
+86:74,
+87:75,
+88:76,
+89:77,
+90:78,
+91:79,
+92:80,
+93:81,
+94:82,
+95:83,
+96:72,
+97:73,
+98:74,
+99:75,
+100:76,
+101:77,
+102:78,
+103:79,
+104:80,
+105:81,
+106:82,
+107:83,
+108:72,
+109:73}
+
+octave2 = {48:84,
+49:85,
+50:86,
+51:87,
+52:88,
+53:89,
+54:90,
+55:91,
+56:92,
+57:93,
+58:94,
+59:95,
+60:84,
+61:85,
+62:86,
+63:87,
+64:88,
+65:89,
+66:90,
+67:91,
+68:92,
+69:93,
+70:94,
+71:95,
+72:84,
+73:85,
+74:86,
+75:87,
+76:88,
+77:89,
+78:90,
+79:91,
+80:92,
+81:93,
+82:94,
+83:95,
+84:84,
+85:85,
+86:86,
+87:87,
+88:88,
+89:89,
+90:90,
+91:91,
+92:92,
+93:93,
+94:94,
+95:95,
+96:84,
+97:85,
+98:86,
+99:87,
+100:88,
+101:89,
+102:90,
+103:91,
+104:92,
+105:93,
+106:94,
+107:95,
+108:84,
+109:85}
+
 # Settings
 PRINT = True		# set to True to enable printing to screen (for debugging)
 
@@ -287,6 +416,15 @@ def writesysex(MSG):	# writes the received Sysex messages to a file
 def sendmidi(MSG):	# Sends the midi messages to the synth
 	global HELDMSG
 		
+	if MSG.type == 'note_on' and MSG.velocity <100:
+		MSG.note = octave1[MSG.note]
+		MSG.velocity = 100	
+		print "note={0}4 velocity={1}".format(pitches[MSG.note], MSG.velocity)	
+	elif MSG.type == 'note_on' and MSG.velocity >=100:
+		MSG.note = octave2[MSG.note]
+		MSG.velocity = 100	
+		print "note={0}5 velocity={1}".format(pitches[MSG.note], MSG.velocity)	
+	
 	OUTPORT.send(MSG) 
 
 	# If the MIDI message is for a new note-on,
@@ -294,10 +432,6 @@ def sendmidi(MSG):	# Sends the midi messages to the synth
 	# This is needed because the EWI misses note-off commands occasionally.
 	if NOTEOFF:
         	if MSG.type == 'note_on' and MSG.velocity >0:
-        		if MSG.velocity <100:
-				print "note={0}4 velocity={1}".format(pitches[MSG.note], MSG.velocity)	
-			else:
-				print "note={0}5 velocity={1}".format(pitches[MSG.note], MSG.velocity)	
 			if MSG.note != HELDMSG.note:
 				usleep(500.0) # introduce a small delay
 				OUTPORT.send(HELDMSG.copy(velocity=0))
